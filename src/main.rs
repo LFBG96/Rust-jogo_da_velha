@@ -1,11 +1,16 @@
+use rand::Rng;
 use std::io;
 use std::process::Command;
 
 fn criar_matriz() -> Vec<Vec<String>> {
     let matriz = vec![vec!["   ".to_string(); 3]; 3];
-    println!("       C0     C1     C2");
+    println!("                          C0     C1     C2");
     for c in 0..matriz.len() {
-        println!("L{}  {:?}", c, matriz[c])
+        println!(
+            "
+                    L{}  {:?}",
+            c, matriz[c]
+        )
     }
     matriz
 }
@@ -26,21 +31,29 @@ fn input() -> usize {
 }
 
 fn imprimir_tabela(matriz: &Vec<Vec<String>>) -> &Vec<Vec<String>> {
-    println!("       C0     C1     C2");
+    println!("               {:-^40}", "JOGO DA VELHA");
+    println!("                          C0     C1     C2");
     for c in 0..matriz.len() {
-        println!("L{}  {:?}", c, matriz[c])
+        println!(
+            "
+                    L{}  {:?}",
+            c, matriz[c]
+        )
     }
 
     matriz
 }
 
-fn verificar_jogada(coluna: usize, linha: usize, matriz: &Vec<Vec<String>>) -> bool {
+fn verificar_jogada(coluna: usize, linha: usize, matriz: &Vec<Vec<String>>, bot: bool) -> bool {
     for _v in matriz {
         if matriz[linha][coluna] == "   " {
             return true;
-        } else {
-            println!("Local ocupado, joque novamente.");
+        } else if bot {
+            println!("Ocupado");
             //break;
+            return false;
+        } else {
+            println!("Local ocupado, jogue novamente.");
             return false;
         }
     }
@@ -49,7 +62,8 @@ fn verificar_jogada(coluna: usize, linha: usize, matriz: &Vec<Vec<String>>) -> b
 }
 
 fn x_jogada(coluna: usize, linha: usize, matriz: &mut Vec<Vec<String>>) -> &Vec<Vec<String>> {
-    if verificar_jogada(coluna, linha, matriz) == true {
+    let bot = false;
+    if verificar_jogada(coluna, linha, matriz, bot) == true {
         matriz[linha][coluna] = " X ".to_string();
     } else {
         loop {
@@ -58,7 +72,7 @@ fn x_jogada(coluna: usize, linha: usize, matriz: &mut Vec<Vec<String>>) -> &Vec<
             println!("Digite o valor da linha [0..2]");
             let linha = input();
 
-            if verificar_jogada(coluna, linha, matriz) == true {
+            if verificar_jogada(coluna, linha, matriz, bot) == true {
                 matriz[linha][coluna] = " X ".to_string();
                 break;
             }
@@ -68,19 +82,34 @@ fn x_jogada(coluna: usize, linha: usize, matriz: &mut Vec<Vec<String>>) -> &Vec<
     imprimir_tabela(matriz);
     matriz
 }
-fn o_jogada(coluna: usize, linha: usize, matriz: &mut Vec<Vec<String>>) -> &Vec<Vec<String>> {
-    if verificar_jogada(coluna, linha, matriz) == true {
+fn o_jogada(
+    coluna: usize,
+    linha: usize,
+    matriz: &mut Vec<Vec<String>>,
+    bot: bool,
+) -> &Vec<Vec<String>> {
+    if verificar_jogada(coluna, linha, matriz, bot) == true {
         matriz[linha][coluna] = " O ".to_string();
     } else {
         loop {
-            println!("Digite o valor da coluna [0..2]");
-            let coluna = input();
-            println!("Digite o valor da linha [0..2]");
-            let linha = input();
+            if bot {
+                let mut rng = rand::thread_rng();
+                let coluna: usize = rng.gen_range(0..3);
+                let linha: usize = rng.gen_range(0..3);
+                if verificar_jogada(coluna, linha, matriz, bot) == true {
+                    matriz[linha][coluna] = " O ".to_string();
+                    break;
+                }
+            } else if bot == false {
+                println!("Digite o valor da coluna [0..2]");
+                let coluna = input();
+                println!("Digite o valor da linha [0..2]");
+                let linha = input();
 
-            if verificar_jogada(coluna, linha, matriz) == true {
-                matriz[linha][coluna] = " O ".to_string();
-                break;
+                if verificar_jogada(coluna, linha, matriz, bot) == true {
+                    matriz[linha][coluna] = " O ".to_string();
+                    break;
+                }
             }
         }
     }
@@ -142,10 +171,24 @@ fn limpar_tela() {
     }
 }
 
+fn _bot_jogador_o() -> bool {
+    false
+}
 fn jogo_da_velha() {
-    println!("{:-^40}", "JOGO DA VELHA");
+    let bot: bool;
+    println!("Jogar com bot? [0] NÃO [1] SIM");
+    let jogar_com_bot = input();
+    if jogar_com_bot == 1 {
+        bot = true;
+    } else {
+        bot = false
+    }
 
-    println!("PRIMEIRA JOGADA JOGADOR [X]\n");
+    let mut cont: i32 = 0;
+    println!("               {:-^40}", "JOGO DA VELHA");
+    let mut rng = rand::thread_rng();
+
+    //println!("PRIMEIRA JOGADA JOGADOR [X]\n");
     let mut matriz = criar_matriz();
 
     loop {
@@ -164,6 +207,7 @@ fn jogo_da_velha() {
         let linha = input();
 
         x_jogada(coluna, linha, &mut matriz);
+        cont += 1;
 
         if let Some(vencedor) = verificar_vitoria(&matriz) {
             if vencedor.contains("X") | vencedor.contains("O") {
@@ -172,14 +216,31 @@ fn jogo_da_velha() {
             }
         }
 
-        //vez do jogador O
-        println!("VEZ DO JOGADOR [O]");
-        println!("Digite o valor da coluna [0..2]");
-        let coluna = input();
-        println!("Digite o valor da linha [0..2]");
-        let linha = input();
+        if bot {
+            let coluna: usize = rng.gen_range(0..3);
+            let linha: usize = rng.gen_range(0..3);
+            cont += 1;
+            if cont > 8 {
+                println!("EMPATE");
+                break;
+            }
+            o_jogada(coluna, linha, &mut matriz, bot);
+        } else {
+            //vez do jogador O
+            println!("VEZ DO JOGADOR [O]");
+            println!("Digite o valor da coluna [0..2]");
+            let coluna = input();
 
-        o_jogada(coluna, linha, &mut matriz);
+            println!("Digite o valor da linha [0..2]");
+            let linha = input();
+            cont += 1;
+            o_jogada(coluna, linha, &mut matriz, bot);
+        }
+        println!("Contador:   {}", cont);
+        if cont > 8 {
+            println!("EMPATE");
+            break;
+        }
     }
 }
 
